@@ -1,0 +1,110 @@
+Added file 'scraper.py'
+	- so far only handles yesterdays 'daily show' and 'colbert'
+
+# --------------
+# Please enter the commit message for your changes. Everything below
+# this paragraph is ignored, and an empty message aborts the commit.
+# Just close the window to accept your message.
+diff --git a/sample.py b/sample.py
+new file mode 100644
+index 0000000..50f1b92
+--- /dev/null
++++ b/sample.py
+@@ -0,0 +1,36 @@
++from tpb import TPB
++from tpb import CATEGORIES, ORDERS
++
++t = TPB('https://thepiratebay.org') # create a TPB object with default domain
++
++# search for 'public domain' in 'movies' category
++search = t.search('public domain', category=CATEGORIES.VIDEO.MOVIES)
++
++# return listings from page 2 of this search
++search.page(2)
++
++# sort this search by count of seeders, and return a multipage result
++search.order(ORDERS.SEEDERS.ASC).multipage()
++
++# search, order by seeders and return page 3 results
++t.search('python').order(ORDERS.SEEDERS.ASC).page(3)
++
++# multipage beginning on page 4
++t.search('recipe book').page(4).multipage()
++
++# search, in a category and return multipage results
++t.search('something').category(CATEGORIES.OTHER.OTHER).multipage()
++
++# get page 3 of recent torrents
++t.recent().page(3)
++
++# get top torrents in Movies category
++t.top().category(CATEGORIES.VIDEO.MOVIES)
++
++# print all torrent descriptions
++for torrent in t.search('public domain'):
++    print(torrent.info)
++
++# print all torrent files and their sizes
++for torrent in t.search('public domain'):
++    print(torrent.files)
+diff --git a/scraper.py b/scraper.py
+new file mode 100644
+index 0000000..7f4ae8f
+--- /dev/null
++++ b/scraper.py
+@@ -0,0 +1,54 @@
++from tpb import TPB
++from tpb import CATEGORIES, ORDERS
++import datetime
++import os
++from subprocess import call
++
++t = TPB('https://thepiratebay.org') # create a TPB object with default domain
++
++# class Show:
++# 	"""Create a new show object"""
++# 	def __init__(self, name, quality=None):
++# 		self.search = name
++# 		self.quality = quality
++
++class Show:
++	def __init__(self, name, dir_name, use_date=True):
++		self.query = name
++		self.dir_name = dir_name
++		self.use_date = use_date
++		
++shows = [Show('colbert', 'The Colbert Report'), Show('daily show', 'The Daily Show')]
++dir = "/home/scott/Videos/TV Shows"
++
++def ensure_dir(f):
++    d = os.path.dirname(f)
++    if not os.path.exists(d):
++        os.makedirs(d)
++
++def main():
++	for show in shows:
++		tv_dir = dir + "/" + show.dir_name
++		f = tv_dir + "/" + ".orig"
++		ensure_dir(f)
++		orig = open(f, 'a+r')
++		now = datetime.datetime.now()
++		if show.use_date:
++			query = show.query + (" %02d %02d %02d" % (int(now.year), int(now.month), int(now.day)-1))
++		else
++			query = show.query
++			
++		result = list(t.search(query, CATEGORIES.VIDEO.TV_SHOWS).order(ORDERS.SEEDERS.DES))[0]
++
++		if not (result.title in orig.read()):
++			print(result.title)
++			print(result.magnet_link)
++			call(["transmission-cli", '-w', tv_dir, result.magnet_link, "&"])
++			orig.write(result.title + "\n")
++		# print(list(t.search(show.search))[0].title)
++
++
++
++
++if __name__ == "__main__":
++	main()
+\ No newline at end of file
